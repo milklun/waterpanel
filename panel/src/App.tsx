@@ -50,7 +50,7 @@ function nowStamp() {
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-// ✅ 新增：生成 raw json 直链
+// ✅ raw json 直链
 function buildRawJsonUrl(repo: string, branch: string, path: string) {
   return `https://raw.githubusercontent.com/${repo}/${branch}/${path}`;
 }
@@ -104,7 +104,7 @@ function normalizeConfig(raw: any): Config {
 }
 
 export default function App() {
-  // 你的仓库
+  // 仓库（写死版：给分享者用；如需通用化可改成可配置）
   const REPO = "milklun/waterpanel";
   const APPS_PATH = "apps/apps.json";
   const BRANCH = "main";
@@ -125,7 +125,15 @@ export default function App() {
   // 新增软件弹窗状态
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState("");
-  const [newFile, setNewFile] = useState("qq.json"); // 自定义名字：configs/xxx.json
+  const [newFile, setNewFile] = useState("qq.json"); // configs/xxx.json
+
+  // ✅ 移动端适配：根据屏幕宽度切换布局
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("gh_token", token);
@@ -196,7 +204,6 @@ export default function App() {
       setConfigSha(sha);
       toastOk(`✅ 已加载：${app.path}`);
     } catch (e: any) {
-      // 文件不存在时给引导
       toastErr(
         (e?.message || String(e)) +
         `\n\n如果这是新软件配置：点击右侧“创建配置文件”。`
@@ -212,7 +219,6 @@ export default function App() {
     setMsg(""); setErr("");
     try {
       const branch = app.branch || BRANCH;
-      // 新建时不传 sha
       const { sha } = await ghPutJsonFile(
         token,
         app.repo,
@@ -235,7 +241,6 @@ export default function App() {
     if (!token) { toastErr("请先填 GitHub Token"); return; }
     if (!config) { toastErr("当前没有可保存的配置"); return; }
 
-    // 校验
     if (!config.title.trim()) { toastErr("title 不能为空"); return; }
     if (!isUrl(config.leftUrl)) { toastErr("leftUrl 不是合法 URL"); return; }
     if (!isUrl(config.rightUrl)) { toastErr("rightUrl 不是合法 URL"); return; }
@@ -298,18 +303,38 @@ export default function App() {
 
     return (
       <div style={{ fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif", padding: 16, maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 14 }}>
-          <div>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+            alignItems: isMobile ? "flex-start" : "center",
+            marginBottom: 14,
+            flexDirection: isMobile ? "column" : "row"
+          }}
+        >
+          <div style={{ flex: 1 }}>
             <div style={{ fontSize: 22, fontWeight: 800 }}>WaterPanel 可视化配置面板</div>
-            <div style={{ opacity: 0.75, marginTop: 4 }}>仓库：{REPO} · 分支：{BRANCH}</div>
+            <div style={{ opacity: 0.75, marginTop: 4 }}>
+              仓库：{REPO} · 分支：{BRANCH} {isMobile ? "· (移动端布局)" : ""}
+            </div>
           </div>
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <button style={btn} onClick={loadApps} disabled={loading}>{loading ? "加载中..." : "加载 apps 列表"}</button>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", width: isMobile ? "100%" : "auto" }}>
+            <button style={{ ...btn, width: isMobile ? "100%" : "auto" }} onClick={loadApps} disabled={loading}>
+              {loading ? "加载中..." : "加载 apps 列表"}
+            </button>
           </div>
         </div>
 
         <div style={{ ...card, marginBottom: 14 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "140px 1fr 160px", gap: 10, alignItems: "center" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isMobile ? "1fr" : "140px 1fr 160px",
+              gap: 10,
+              alignItems: "center"
+            }}
+          >
             <div style={{ fontWeight: 700 }}>GitHub Token</div>
             <input
               style={input}
@@ -317,19 +342,30 @@ export default function App() {
               onChange={(e) => setToken(e.target.value)}
               placeholder="Fine-grained PAT（只授予 milklun/waterpanel 的 Contents 读写）"
             />
-            <button style={btn} onClick={() => { localStorage.removeItem("gh_token"); setToken(""); }}>清除</button>
+            <button
+              style={{ ...btn, width: isMobile ? "100%" : "auto" }}
+              onClick={() => { localStorage.removeItem("gh_token"); setToken(""); }}
+            >
+              清除
+            </button>
           </div>
           <div style={{ fontSize: 12, opacity: 0.7, marginTop: 8 }}>
             Token 仅保存在你浏览器 localStorage，用于调用 GitHub API 写回 main。
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 14 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr" : "320px 1fr",
+            gap: 14
+          }}
+        >
           {/* 左侧：软件列表 */}
           <div style={card}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 10, flexWrap: "wrap" }}>
               <div style={{ fontWeight: 800 }}>软件列表（apps/apps.json）</div>
-              <button style={btn} onClick={() => { setShowAdd(true); setNewName(""); setNewFile("new.json"); }} disabled={loading}>
+              <button style={{ ...btn, width: isMobile ? "100%" : "auto" }} onClick={() => { setShowAdd(true); setNewName(""); setNewFile("new.json"); }} disabled={loading}>
                 + 新增
               </button>
             </div>
@@ -354,9 +390,9 @@ export default function App() {
                     <div style={{ fontSize: 12, opacity: 0.75 }}>{a.path}</div>
                     <div style={{ fontSize: 12, opacity: 0.75 }}>{a.repo} @ {a.branch || BRANCH}</div>
 
-                    <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                    <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
                       <button
-                        style={btn}
+                        style={{ ...btn, flex: isMobile ? "1 1 140px" : "0 0 auto" }}
                         onClick={(e) => {
                           e.stopPropagation();
                           const next = apps.filter((_, i) => i !== idx);
@@ -368,7 +404,7 @@ export default function App() {
                         删除
                       </button>
                       <button
-                        style={btn}
+                        style={{ ...btn, flex: isMobile ? "1 1 140px" : "0 0 auto" }}
                         onClick={(e) => {
                           e.stopPropagation();
                           const rename = prompt("新的 name：", a.name);
@@ -396,9 +432,9 @@ export default function App() {
                   <div style={{ fontSize: 12, opacity: 0.7 }}>
                     将写入：configs/{newFile}
                   </div>
-                  <div style={{ display: "flex", gap: 8 }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <button
-                      style={btnPrimary}
+                      style={{ ...btnPrimary, width: isMobile ? "100%" : "auto" }}
                       onClick={() => {
                         const name = newName.trim();
                         const file = newFile.trim();
@@ -415,7 +451,7 @@ export default function App() {
                     >
                       保存到 apps.json
                     </button>
-                    <button style={btn} onClick={() => setShowAdd(false)} disabled={loading}>取消</button>
+                    <button style={{ ...btn, width: isMobile ? "100%" : "auto" }} onClick={() => setShowAdd(false)} disabled={loading}>取消</button>
                   </div>
                 </div>
               </div>
@@ -424,40 +460,35 @@ export default function App() {
 
           {/* 右侧：配置编辑 */}
           <div style={card}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", marginBottom: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", marginBottom: 10, flexWrap: "wrap" }}>
               <div style={{ fontWeight: 800 }}>
                 配置编辑
                 {selectedApp ? <span style={{ fontWeight: 500, opacity: 0.7 }}> · {selectedApp.name}（{selectedApp.path}）</span> : null}
               </div>
-
-              <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", width: isMobile ? "100%" : "auto" }}>
                 <button
-                  style={btn}
+                  style={{ ...btn, flex: isMobile ? "1 1 140px" : "0 0 auto" }}
                   onClick={() => selectedApp && loadConfigFor(selectedApp)}
                   disabled={loading || !selectedApp}
                 >
                   重新加载
                 </button>
-
                 <button
-                  style={btn}
+                  style={{ ...btn, flex: isMobile ? "1 1 140px" : "0 0 auto" }}
                   onClick={() => selectedApp && createConfigFile(selectedApp)}
                   disabled={loading || !selectedApp}
                 >
                   创建配置文件
                 </button>
-
                 <button
-                  style={btnPrimary}
+                  style={{ ...btnPrimary, flex: isMobile ? "1 1 140px" : "0 0 auto" }}
                   onClick={() => selectedApp && saveConfigFile(selectedApp)}
                   disabled={loading || !selectedApp}
                 >
                   保存到 main
                 </button>
-
-                {/* ✅ 新增：复制 raw JSON 链接 */}
                 <button
-                  style={btn}
+                  style={{ ...btn, flex: isMobile ? "1 1 140px" : "0 0 auto" }}
                   onClick={() => {
                     if (!selectedApp) return;
                     const url = buildRawJsonUrl(
@@ -483,7 +514,14 @@ export default function App() {
               </div>
             ) : (
               <>
-                <div style={{ display: "grid", gridTemplateColumns: "160px 1fr", gap: 10, alignItems: "center" }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: isMobile ? "1fr" : "160px 1fr",
+                    gap: 10,
+                    alignItems: "center"
+                  }}
+                >
                   <div style={{ fontWeight: 700 }}>VIP</div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <input
@@ -515,10 +553,10 @@ export default function App() {
                 </div>
 
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #eee" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                     <div style={{ fontWeight: 800 }}>licenses</div>
                     <button
-                      style={btn}
+                      style={{ ...btn, width: isMobile ? "100%" : "auto" }}
                       onClick={() => setConfig({ ...config, licenses: [...config.licenses, { ID: "", expire: "20261201" }] })}
                     >
                       + 添加
@@ -527,7 +565,14 @@ export default function App() {
 
                   <div style={{ marginTop: 10, display: "grid", gap: 8 }}>
                     {config.licenses.map((lic, idx) => (
-                      <div key={idx} style={{ display: "grid", gridTemplateColumns: "1fr 160px 90px", gap: 8 }}>
+                      <div
+                        key={idx}
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: isMobile ? "1fr" : "1fr 160px 90px",
+                          gap: 8
+                        }}
+                      >
                         <input
                           style={input}
                           value={lic.ID}
@@ -549,7 +594,7 @@ export default function App() {
                           }}
                         />
                         <button
-                          style={btn}
+                          style={{ ...btn, width: isMobile ? "100%" : "auto" }}
                           onClick={() => setConfig({ ...config, licenses: config.licenses.filter((_, i) => i !== idx) })}
                         >
                           删除
@@ -563,9 +608,14 @@ export default function App() {
                 </div>
 
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #eee" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                     <div style={{ fontWeight: 800 }}>JSON 预览</div>
-                    <button style={btn} onClick={() => navigator.clipboard.writeText(configJsonPreview)}>复制</button>
+                    <button
+                      style={{ ...btn, width: isMobile ? "100%" : "auto" }}
+                      onClick={() => navigator.clipboard.writeText(configJsonPreview)}
+                    >
+                      复制
+                    </button>
                   </div>
                   <pre style={{ marginTop: 8, background: "#fafafa", border: "1px solid #eee", padding: 12, borderRadius: 12, overflow: "auto" }}>
                     {configJsonPreview}
