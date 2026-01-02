@@ -1,1 +1,8 @@
-[]
+[
+  {
+    "name": "QQ 配置",
+    "repo": "milklun/waterpanel",
+    "path": "configs/qq.json",
+    "branch": "main"
+  }
+]
