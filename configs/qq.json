@@ -1,0 +1,12 @@
+{
+  "VIP": "开",
+  "title": "方源",
+  "body": "生活就像发朋友圈，做好自己就可以了",
+  "enterPackage": "com.tencent.mobileqq",
+  "leftUrl": "https://your.site/cert",
+  "rightUrl": "https://your.site/home",
+  "licenses": [
+    { "ID": "42345", "expire": "20261201" },
+    { "ID": "ffcfccf34e", "expire": "20261201" }
+  ]
+}
